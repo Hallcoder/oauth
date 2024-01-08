@@ -1,31 +1,50 @@
-import { useState } from "react";
-import reactLogo from "./assets/react.svg";
-import viteLogo from "/vite.svg";
+import { useEffect, useState } from "react";
 import "./App.css";
-import {
-  CredentialResponse,
-  GoogleLogin,
-  useGoogleLogin,
-} from "@react-oauth/google";
+import { useGoogleLogin } from "@react-oauth/google";
+import axios from "axios";
 
 function App() {
-  const [count, setCount] = useState(0);
-  const [user, setUser] = useState([]);
+  const [profile, setProfile] = useState<any>([]);
+  const [user, setUser] = useState<any | []>([]);
   const login = useGoogleLogin({
-    onSuccess: (response: any) => setUser(response),
+    onSuccess: (response: any) => {
+      console.log(response);
+      setUser(response);
+    },
     onError: (response) => console.log("Error occured", response),
   });
-  function onSuccess(credentialResponse: CredentialResponse): void {
-    console.log(credentialResponse);
-  }
-
-  function onFailure() {
-    console.log("Error occurred");
-  }
+  useEffect(() => {
+    if (user.length > 0) {
+      axios
+        .get(
+          `https://www.googleapis.com/oauth2/v1/userinfo?access_token=${user.access_token}`,
+          {
+            headers: {
+              Authorization: `Bearer ${user.access_token}`,
+              Accept: "application/json",
+            },
+          }
+        )
+        .then((res: any) => {
+          console.log("User object", res);
+          setProfile(res.data);
+        })
+        .catch((err: any) => {
+          console.log("Error message", err);
+        });
+    }
+  }, [user]);
 
   return (
     <>
-      <GoogleLogin onSuccess={onSuccess} onError={onFailure} />
+      {profile ? (
+        <div>
+          <img src={profile.picture} alt="" />
+        </div>
+      ) : (
+        <h1>Let's see if this works</h1>
+      )}
+      <button onClick={() => login()}>Sign in with Google🚀</button>
     </>
   );
 }
